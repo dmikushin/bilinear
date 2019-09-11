@@ -2,6 +2,8 @@
 
 Explore the performance advantages of GPU by example of bilinear image filter (increases image resolution by factor of two).
 
+<img width="400px" src="screenshot.png"/>
+
 ## Preparation
 
 ```bash
