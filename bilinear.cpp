@@ -1,13 +1,14 @@
+#include <chrono>
 #include <iomanip>
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
 #include <iostream>
-#include <time.h>
 #include <vector>
 #include "EasyBMP.h"
 
 using namespace std;
+using namespace std::chrono;
 
 struct float3
 {
@@ -66,26 +67,6 @@ void bilinear (const int width, const int height,
 		}
 }
 
-// Get the timer value.
-static void get_time(volatile struct timespec* val)
-{
-	clock_gettime(CLOCK_REALTIME, (struct timespec*)val);
-}
-
-// Get the timer measured values difference.
-static double get_time_diff(struct timespec* val1, struct timespec* val2)
-{
-	int64_t seconds = val2->tv_sec - val1->tv_sec;
-	int64_t nanoseconds = val2->tv_nsec - val1->tv_nsec;
-	if (val2->tv_nsec < val1->tv_nsec)
-	{
-		seconds--;
-		nanoseconds = (1000000000 - val1->tv_nsec) + val2->tv_nsec;
-	}
-	
-	return (double)0.000000001 * nanoseconds + seconds;
-}
-
 int main(int argc, char* argv[])
 {
 	if (argc != 2)
@@ -108,15 +89,15 @@ int main(int argc, char* argv[])
 			input[i + j * width] = AnImage.GetPixel(i, j);
 	memset(&input[height * width], 0, (width + 1) * sizeof(RGBApixel));
 
-	struct timespec start;
-	get_time(&start);
+	auto start = high_resolution_clock::now();
 
 	bilinear(width, height, input, output);
 
-	struct timespec finish;
-	get_time(&finish);
+	auto finish = high_resolution_clock::now();
 	
-	printf("CPU kernel time = %f sec\n", get_time_diff(&start, &finish));
+	cout << "CPU kernel time = " <<
+		duration_cast<milliseconds>(finish - start).count() <<
+		" ms" << endl;
 
 	AnImage.SetSize(2 * width, 2 * height);
 	for (int i = 0; i < 2 * width; i++)

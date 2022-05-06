@@ -1,8 +1,8 @@
+#include <chrono>
 #include <iomanip>
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
-#include <time.h>
 #include <vector>
 #include "EasyBMP.h"
 
@@ -12,6 +12,7 @@
 }} while (0)
 
 using namespace std;
+using namespace std::chrono;
 
 #define ARR(T, i, j) (T[(i) + (j) * width])
 
@@ -67,26 +68,6 @@ __global__ void bilinear (const int width, const int height,
 	interpolate(input, output[i + j * 2 * width], width, x, y);
 }
 
-// Get the timer value.
-static void get_time(volatile struct timespec* val)
-{
-	clock_gettime(CLOCK_REALTIME, (struct timespec*)val);
-}
-
-// Get the timer measured values difference.
-static double get_time_diff(struct timespec* val1, struct timespec* val2)
-{
-	int64_t seconds = val2->tv_sec - val1->tv_sec;
-	int64_t nanoseconds = val2->tv_nsec - val1->tv_nsec;
-	if (val2->tv_nsec < val1->tv_nsec)
-	{
-		seconds--;
-		nanoseconds = (1000000000 - val1->tv_nsec) + val2->tv_nsec;
-	}
-	
-	return (double)0.000000001 * nanoseconds + seconds;
-}
- 
 int main(int argc, char* argv[])
 {
 	if (argc != 2)
@@ -114,8 +95,7 @@ int main(int argc, char* argv[])
 	CUDA_CALL(cudaMalloc(&doutput, sizeof(RGBApixel) * output.size()));
 	CUDA_CALL(cudaMemcpy(dinput, &input[0], sizeof(RGBApixel) * input.size(), cudaMemcpyHostToDevice));
 
-	struct timespec start;
-	get_time(&start);
+	auto start = high_resolution_clock::now();
 
 	dim3 szblock(128, 1, 1);
 	dim3 nblocks(2 * width / szblock.x, 2 * height, 1);
@@ -124,10 +104,11 @@ int main(int argc, char* argv[])
 	CUDA_CALL(cudaGetLastError());
 	CUDA_CALL(cudaDeviceSynchronize());
 
-	struct timespec finish;
-	get_time(&finish);
-	
-	printf("GPU kernel time = %f sec\n", get_time_diff(&start, &finish));
+	auto finish = high_resolution_clock::now();
+
+	cout << "GPU kernel time = " <<
+		duration_cast<milliseconds>(finish - start).count() <<
+		" ms" << endl;
 
 	CUDA_CALL(cudaMemcpy(&output[0], doutput, sizeof(RGBApixel) * output.size(), cudaMemcpyDeviceToHost));
 
