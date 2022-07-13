@@ -1,15 +1,10 @@
 #include <chrono>
 #include <iomanip>
-#include <stdio.h>
 #include <math.h>
 #include <iostream>
 #include <vector>
 #include "EasyBMP.h"
-
-#define CUDA_CALL(x) do { cudaError_t err = x; if (( err ) != cudaSuccess ) { \
-	printf ("Error \"%s\" at %s :%d \n" , cudaGetErrorString(err), \
-		__FILE__ , __LINE__ ) ; exit(-1); \
-}} while (0)
+#include "gpu.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -91,9 +86,9 @@ int main(int argc, char* argv[])
 	memset(&input[height * width], 0, (width + 1) * sizeof(RGBApixel));
 
 	RGBApixel *dinput, *doutput;
-	CUDA_CALL(cudaMalloc(&dinput, sizeof(RGBApixel) * input.size()));
-	CUDA_CALL(cudaMalloc(&doutput, sizeof(RGBApixel) * output.size()));
-	CUDA_CALL(cudaMemcpy(dinput, &input[0], sizeof(RGBApixel) * input.size(), cudaMemcpyHostToDevice));
+	GPU_CALL(gpuMalloc(&dinput, sizeof(RGBApixel) * input.size()));
+	GPU_CALL(gpuMalloc(&doutput, sizeof(RGBApixel) * output.size()));
+	GPU_CALL(gpuMemcpy(dinput, &input[0], sizeof(RGBApixel) * input.size(), gpuMemcpyHostToDevice));
 
 	auto start = high_resolution_clock::now();
 
@@ -101,8 +96,8 @@ int main(int argc, char* argv[])
 	dim3 nblocks(2 * width / szblock.x, 2 * height, 1);
 	if (2 * width % szblock.x) nblocks.x++;
 	bilinear<<<nblocks, szblock>>>(width, height, dinput, doutput);
-	CUDA_CALL(cudaGetLastError());
-	CUDA_CALL(cudaDeviceSynchronize());
+	GPU_CALL(gpuGetLastError());
+	GPU_CALL(gpuDeviceSynchronize());
 
 	auto finish = high_resolution_clock::now();
 
@@ -110,7 +105,7 @@ int main(int argc, char* argv[])
 		duration_cast<milliseconds>(finish - start).count() <<
 		" ms" << endl;
 
-	CUDA_CALL(cudaMemcpy(&output[0], doutput, sizeof(RGBApixel) * output.size(), cudaMemcpyDeviceToHost));
+	GPU_CALL(gpuMemcpy(&output[0], doutput, sizeof(RGBApixel) * output.size(), gpuMemcpyDeviceToHost));
 
 	AnImage.SetSize(2 * width, 2 * height);
 	for (int i = 0; i < 2 * width; i++)
@@ -118,7 +113,10 @@ int main(int argc, char* argv[])
 			AnImage.SetPixel(i, j, output[i + j * 2 * width]);
 
 	AnImage.WriteToFile("output_gpu.bmp");
- 
+
+	GPU_CALL(gpuFree(dinput));
+	GPU_CALL(gpuFree(doutput));
+
 	return 0;
 }
 

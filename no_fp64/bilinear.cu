@@ -1,17 +1,14 @@
+#include <chrono>
 #include <iomanip>
 #include <stdio.h>
 #include <math.h>
 #include <iostream>
-#include <time.h>
 #include <vector>
 #include "EasyBMP.h"
-
-#define CUDA_CALL(x) do { cudaError_t err = x; if (( err ) != cudaSuccess ) { \
-	printf ("Error \"%s\" at %s :%d \n" , cudaGetErrorString(err), \
-		__FILE__ , __LINE__ ) ; exit(-1); \
-}} while (0)
+#include "gpu.h"
 
 using namespace std;
+using namespace std::chrono;
 
 #define ARR(T, i, j) (T[(i) + (j) * width])
 
@@ -67,26 +64,6 @@ __global__ void bilinear (const int width, const int height,
 	interpolate(input, output[i + j * 2 * width], width, x, y);
 }
 
-// Get the timer value.
-static void get_time(volatile struct timespec* val)
-{
-	clock_gettime(CLOCK_REALTIME, (struct timespec*)val);
-}
-
-// Get the timer measured values difference.
-static double get_time_diff(struct timespec* val1, struct timespec* val2)
-{
-	int64_t seconds = val2->tv_sec - val1->tv_sec;
-	int64_t nanoseconds = val2->tv_nsec - val1->tv_nsec;
-	if (val2->tv_nsec < val1->tv_nsec)
-	{
-		seconds--;
-		nanoseconds = (1000000000 - val1->tv_nsec) + val2->tv_nsec;
-	}
-	
-	return (double)0.000000001 * nanoseconds + seconds;
-}
- 
 int main(int argc, char* argv[])
 {
 	if (argc != 2)
@@ -110,26 +87,26 @@ int main(int argc, char* argv[])
 	memset(&input[height * width], 0, (width + 1) * sizeof(RGBApixel));
 
 	RGBApixel *dinput, *doutput;
-	CUDA_CALL(cudaMalloc(&dinput, sizeof(RGBApixel) * input.size()));
-	CUDA_CALL(cudaMalloc(&doutput, sizeof(RGBApixel) * output.size()));
-	CUDA_CALL(cudaMemcpy(dinput, &input[0], sizeof(RGBApixel) * input.size(), cudaMemcpyHostToDevice));
+	GPU_CALL(gpuMalloc(&dinput, sizeof(RGBApixel) * input.size()));
+	GPU_CALL(gpuMalloc(&doutput, sizeof(RGBApixel) * output.size()));
+	GPU_CALL(gpuMemcpy(dinput, &input[0], sizeof(RGBApixel) * input.size(), gpuMemcpyHostToDevice));
 
-	struct timespec start;
-	get_time(&start);
+	auto start = high_resolution_clock::now();
 
 	dim3 szblock(128, 1, 1);
 	dim3 nblocks(2 * width / szblock.x, 2 * height, 1);
 	if (2 * width % szblock.x) nblocks.x++;
 	bilinear<<<nblocks, szblock>>>(width, height, dinput, doutput);
-	CUDA_CALL(cudaGetLastError());
-	CUDA_CALL(cudaDeviceSynchronize());
+	GPU_CALL(gpuGetLastError());
+	GPU_CALL(gpuDeviceSynchronize());
 
-	struct timespec finish;
-	get_time(&finish);
-	
-	printf("GPU kernel time = %f sec\n", get_time_diff(&start, &finish));
+	auto finish = high_resolution_clock::now();
 
-	CUDA_CALL(cudaMemcpy(&output[0], doutput, sizeof(RGBApixel) * output.size(), cudaMemcpyDeviceToHost));
+	cout << "GPU kernel time = " <<
+		duration_cast<milliseconds>(finish - start).count() <<
+		" ms" << endl;
+
+	GPU_CALL(gpuMemcpy(&output[0], doutput, sizeof(RGBApixel) * output.size(), gpuMemcpyDeviceToHost));
 
 	AnImage.SetSize(2 * width, 2 * height);
 	for (int i = 0; i < 2 * width; i++)
@@ -137,7 +114,10 @@ int main(int argc, char* argv[])
 			AnImage.SetPixel(i, j, output[i + j * 2 * width]);
 
 	AnImage.WriteToFile("output_gpu.bmp");
- 
+
+	GPU_CALL(gpuFree(dinput));
+	GPU_CALL(gpuFree(doutput));
+
 	return 0;
 }
 
