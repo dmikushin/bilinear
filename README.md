@@ -1,6 +1,6 @@
 # Bilinear test in OpenCL 
 
-OpenCL implementation of the Bilinear test program
+OpenCL implementation of the Bilinear test program. Runs on NVIDIA, AMD and ARM (Mali) devices.
 
 ## Prerequisites
 

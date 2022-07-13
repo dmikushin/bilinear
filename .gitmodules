@@ -1,0 +1,3 @@
+[submodule "ThirdParty/res_embed"]
+	path = ThirdParty/res_embed
+	url = https://github.com/dmikushin/res_embed.git

@@ -4,6 +4,7 @@
 #include <time.h>
 #include <vector>
 #include "EasyBMP.h"
+#include "res_embed.h"
 
 #define CL_USE_DEPRECATED_OPENCL_2_0_APIS
 #include <CL/cl.h>
@@ -102,8 +103,8 @@ int main(int argc, char* argv[])
 	CL_CALL(status);
 
 	// Read and compile the program
-	const char* source = (const char*)bilinear_cl;
-	size_t size = bilinear_cl_len;
+	size_t size = 0;
+	const char* source = res::embed::get("bilinear_opencl", &size);
 	cl_program program = clCreateProgramWithSource(context, 1, &source, &size, &status);
 	CL_CALL(status);
 	status = clBuildProgram(program, numDevices, devices, NULL, NULL, NULL);
