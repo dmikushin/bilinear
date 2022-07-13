@@ -1,10 +1,12 @@
-# A simple image filter example for those who study GPU/CUDA programming
+# A simple image filter example for those who study GPU CUDA/HIP programming
 
 Explore the performance advantages of GPU by example of bilinear image filter (increases image resolution by factor of two).
 
 <img width="400px" src="screenshot.png"/>
 
 ## Preparation
+
+Get the code and a sample image:
 
 ```bash
 git clone https://github.com/dmikushin/bilinear.git
@@ -15,6 +17,16 @@ convert PIA00004.jpg PIA00004.bmp
 
 Note we use very large input image e.g. from NASA space missions. The larger is an image, the greater is the chance to saturate the **massive parallelism** of many GPU cores, especially if the GPU is big, such as NVIDIA Volta V100 (which is used in the performance measurements below).
 
+[CMake](https://cmake.org/download/) is required to build the executables, both Linux and Windows platforms are supported. The CUDA toolkit must present in the system; alternatively, ROCm/HIP could be used to compile the same code for AMD GPUs.
+
+We recommend [Ninja](https://ninja-build.org/) as a CMake generator, because it supports both Linux and Windows, as well as the parallel compilation. The following commands could be executed from the terminal (Visual Studio Command Prompt, in case of Windows), in order to build the executables:
+
+```
+cd bilinear
+mkdir build
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+ninja
+```
 
 ## Basic CUDA kernel
 
@@ -73,22 +85,12 @@ __global__ void bilinear (const int width, const int height,
 ```
 
 ```bash
-cd unoptimized
-make
 ./bilinear_cpu ../PIA00004.bmp
-```
-
-```
 CPU kernel time = 0.897581 sec
 ```
 
 ```bash
-cd unoptimized
-make
 ./bilinear_gpu ../PIA00004.bmp
-```
-
-```
 GPU kernel time = 0.003332 sec
 ```
 
@@ -130,12 +132,7 @@ static __device__ __inline__ void interpolate(
 ```
 
 ```bash
-cd coalescing
-make
 ./bilinear_gpu ../PIA00004.bmp
-```
-
-```
 GPU kernel time = 0.002590 sec
 ```
 
