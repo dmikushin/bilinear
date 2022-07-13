@@ -21,7 +21,7 @@ Note we use very large input image e.g. from NASA space missions. The larger is 
 
 We recommend [Ninja](https://ninja-build.org/) as a CMake generator, because it supports both Linux and Windows, as well as the parallel compilation. The following commands could be executed from the terminal (Visual Studio Command Prompt, in case of Windows), in order to build the executables:
 
-```
+```bash
 cd bilinear
 mkdir build
 cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
