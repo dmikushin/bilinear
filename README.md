@@ -1,4 +1,6 @@
-# A simple image filter example for those who study GPU CUDA/HIP programming [See also the OpenCL version](https://github.com/dmikushin/bilinear/tree/opencl)
+# A simple image filter example for those who study GPU CUDA/HIP programming
+
+[See also the OpenCL version](https://github.com/dmikushin/bilinear/tree/opencl)
 
 Explore the performance advantages of GPU by example of bilinear image filter (increases image resolution by factor of two).
 
