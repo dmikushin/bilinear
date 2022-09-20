@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDACC__)
 using gpuError_t = cudaError_t;
 typedef cudaError_t gpuError_t;
 static const auto gpuSuccess = cudaSuccess;
